@@ -6,23 +6,31 @@ typedef struct {
   float phase;
 } Oscillator;
 
-int main() {
+void updateSignal(float* signal, float frequency, float sample_duration)
+{
+   for (size_t t = 0; t < 1024; ++t)
+	  {
+	    signal[t] = sinf(2*PI * frequency * sample_duration * (float)t);
+	  }
+}
+
+int main(void)
+{
   const int screen_width = 1024;
   const int screen_height = 768;
   InitWindow(screen_width, screen_height, "synthesizer_tryout");
-
   SetTargetFPS(60);
 
   Oscillator osc = {.phase = 0.0f};
   float signal[screen_width];
-
-  for (size_t i = 0; i < screen_width; ++i)
-	{
-	  signal[i] = sinf((float)i *0.1f);
-	}
+  float frequency = 5.0f;
+  unsigned int sample_rate = 1024;
+  float sample_duration = (1.0f / 1024);
 
   while(!WindowShouldClose())
   {
+	updateSignal(&signal[0], frequency, sample_duration);
+	frequency += 0.01f;
 	BeginDrawing();
 	ClearBackground(BLACK);
 	for (size_t i = 0; i < screen_width; ++i)
