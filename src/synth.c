@@ -25,14 +25,15 @@ int main(void)
   float signal[screen_width];
   float frequency = 5.0f;
   unsigned int sample_rate = 1024;
-  float sample_duration = (1.0f / 1024);
+  float sample_duration = (1.0f / screen_width);
 
   while(!WindowShouldClose())
   {
-	updateSignal(&signal[0], frequency, sample_duration);
+	updateSignal(signal, frequency, sample_duration);
 	frequency += 0.01f;
 	BeginDrawing();
 	ClearBackground(BLACK);
+	DrawText(TextFormat("Frequency: %f", frequency), 100, 100, 20, RED);
 	for (size_t i = 0; i < screen_width; ++i)
 	{
 	  DrawPixel(i, screen_height/2 + (int)(signal[i] * 100), BLUE);
