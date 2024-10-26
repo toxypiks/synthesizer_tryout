@@ -7,13 +7,16 @@
 
 typedef struct {
   float phase;
+  float phase_stride;
 } Oscillator;
 
-void updateSignal(float* signal, float frequency, float sample_duration)
+void updateSignal(float* signal, Oscillator* osc)
 {
    for (size_t t = 0; t < STREAM_BUFFER_SIZE; ++t)
 	  {
-	    signal[t] = sinf(2*PI * frequency * sample_duration * (float)t);
+		osc->phase += osc->phase_stride;
+		if (osc->phase >= 1.0f) osc->phase -= 1.0f;
+	    signal[t] = sinf(2.0f*PI * osc->phase);
 	  }
 }
 
@@ -25,10 +28,10 @@ int main(void)
   SetTargetFPS(60);
   InitAudioDevice();
 
-  Oscillator osc = {.phase = 0.0f};
-  float signal[STREAM_BUFFER_SIZE];
   float frequency = 5.0f;
   float sample_duration = (1.0f / SAMPLE_RATE);
+  Oscillator osc = {.phase = 0.0f, .phase_stride = frequency * sample_duration};
+  float signal[STREAM_BUFFER_SIZE];
 
   SetAudioStreamBufferSizeDefault(STREAM_BUFFER_SIZE);
   AudioStream synth_stream = LoadAudioStream(SAMPLE_RATE, sizeof(float)*8, 1);
@@ -39,9 +42,10 @@ int main(void)
   {
 	if (IsAudioStreamProcessed(synth_stream))
 	{
-	 updateSignal(signal, frequency, sample_duration);
+	 updateSignal(signal, &osc);
 	 UpdateAudioStream(synth_stream, signal, STREAM_BUFFER_SIZE);
-	 frequency += 0.5f;
+	 frequency += 0.7f;
+	 osc.phase_stride = frequency * sample_duration;
 	}
 
 	BeginDrawing();
