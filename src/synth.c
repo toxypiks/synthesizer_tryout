@@ -10,12 +10,17 @@ typedef struct {
   float phase_stride;
 } Oscillator;
 
+void updateOsc(Oscillator* osc)
+{
+	osc->phase += osc->phase_stride;
+	if (osc->phase >= 1.0f) osc->phase -= 1.0f;
+}
+
 void updateSignal(float* signal, Oscillator* osc)
 {
    for (size_t t = 0; t < STREAM_BUFFER_SIZE; ++t)
 	  {
-		osc->phase += osc->phase_stride;
-		if (osc->phase >= 1.0f) osc->phase -= 1.0f;
+		updateOsc(osc);
 	    signal[t] = sinf(2.0f*PI * osc->phase);
 	  }
 }
@@ -28,29 +33,37 @@ int main(void)
   SetTargetFPS(60);
   InitAudioDevice();
 
-  float frequency = 5.0f;
-  float sample_duration = (1.0f / SAMPLE_RATE);
-  Oscillator osc = {.phase = 0.0f, .phase_stride = frequency * sample_duration};
-  float signal[STREAM_BUFFER_SIZE];
-
   SetAudioStreamBufferSizeDefault(STREAM_BUFFER_SIZE);
   AudioStream synth_stream = LoadAudioStream(SAMPLE_RATE, sizeof(float)*8, 1);
 
   SetAudioStreamVolume(synth_stream, 0.05f);
   PlayAudioStream(synth_stream);
+
+  float frequency = 5.0f;
+  float sample_duration = (1.0f / SAMPLE_RATE);
+  Oscillator osc = {.phase = 0.0f, .phase_stride = frequency * sample_duration};
+  // LFO: low frequency oscillator
+  Oscillator lfo = {.phase = 0.0f, .phase_stride = 1000.0f * sample_duration};
+  float signal[STREAM_BUFFER_SIZE];
+
   while(!WindowShouldClose())
   {
 	if (IsAudioStreamProcessed(synth_stream))
 	{
-	 updateSignal(signal, &osc);
-	 UpdateAudioStream(synth_stream, signal, STREAM_BUFFER_SIZE);
-	 frequency += 0.7f;
-	 osc.phase_stride = frequency * sample_duration;
+	    updateOsc(&lfo);
+	    frequency = 220.0f + sinf(2.0f * PI * lfo.phase) * 25.0f;
+	    osc.phase_stride = frequency * sample_duration;
+
+	    updateSignal(signal, &osc);
+	    UpdateAudioStream(synth_stream, signal, STREAM_BUFFER_SIZE);
 	}
 
 	BeginDrawing();
 	ClearBackground(BLACK);
-	DrawText(TextFormat("Frequency: %f", frequency), 100, 100, 20, RED);
+	if(IsAudioStreamPlaying(synth_stream))
+	{
+	    DrawText(TextFormat("Frequency: %f", frequency), 100, 100, 20, RED);
+	}
 	for (size_t i = 0; i < screen_width; ++i)
 	{
 	  DrawPixel(i, screen_height/2 + (int)(signal[i] * 100), BLUE);
