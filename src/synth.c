@@ -48,10 +48,11 @@ int main(void)
 
   while(!WindowShouldClose())
   {
+	Vector2 mouse_pos = GetMousePosition();
 	if (IsAudioStreamProcessed(synth_stream))
 	{
 	    updateOsc(&lfo);
-	    frequency = 220.0f + sinf(2.0f * PI * lfo.phase) * 25.0f;
+	    frequency = 220.0f + (mouse_pos.x /(float)screen_width) * 100.0f;
 	    osc.phase_stride = frequency * sample_duration;
 
 	    updateSignal(signal, &osc);
