@@ -5,12 +5,17 @@
 #define SAMPLE_RATE 44100
 #define STREAM_BUFFER_SIZE 1024
 #define NUM_OSCILLATORS 16
-
+#define SAMPLE_DURATION (1.0f / SAMPLE_RATE)
 
 typedef struct {
   float phase;
   float phase_stride;
 } Oscillator;
+
+void setOscFrequency(Oscillator* osc, float frequency)
+{
+  osc->phase_stride = frequency * SAMPLE_DURATION;
+}
 
 void updateOsc(Oscillator* osc)
 {
@@ -35,12 +40,17 @@ void zeroSignal(float* signal)
 	  }
 }
 
+float sineWaveOsc(Oscillator* osc)
+{
+  return sinf(2.0f*PI * osc->phase);
+}
+
 void accumulateSignal(float* signal, Oscillator* osc, float amplitude)
 {
    for (size_t t = 0; t < STREAM_BUFFER_SIZE; ++t)
 	  {
 		updateOsc(osc);
-	    signal[t] += sinf(2.0f*PI * osc->phase) * amplitude;
+	    signal[t] += sineWaveOsc(osc) * amplitude;
 	  }
 }
 
@@ -58,13 +68,13 @@ int main(void)
   SetAudioStreamVolume(synth_stream, 0.05f);
   PlayAudioStream(synth_stream);
 
-  float frequency = 5.0f;
-  float sample_duration = (1.0f / SAMPLE_RATE);
-  // Oscillator osc = {.phase = 0.0f, .phase_stride = frequency * sample_duration};
-  // LFO: low frequency oscillator
-  // Oscillator lfo = {.phase = 0.0f, .phase_stride = 1000.0f * sample_duration};
-  Oscillator osc[NUM_OSCILLATORS] = {0};
+  float frequency = 0.0f;
   float signal[STREAM_BUFFER_SIZE];
+
+  // LFO: low frequency oscillator
+  Oscillator lfo = {.phase = 0.0f};
+  setOscFrequency(&lfo, 10.0f * 1024); //wobble ten times per second
+  Oscillator osc[NUM_OSCILLATORS] = {0};
 
   float detune = 0.1f;
 
@@ -76,13 +86,14 @@ int main(void)
 	if (IsAudioStreamProcessed(synth_stream))
 	{
 		zeroSignal(signal);
-		float base_freq = 50.0f + (normalized_mouse_x * 1000.0f);
+		updateOsc(&lfo);
+		float base_freq = 25.0f + (normalized_mouse_x * 400.0f) + (sineWaveOsc(&lfo) * 50.0f);
 		for (size_t i = 0; i < NUM_OSCILLATORS; ++i)
 		{
 		  if (i % 2 != 0)
 		  {
 		    frequency = base_freq * i;
-		    float phase_stride = frequency * sample_duration;
+		    float phase_stride = frequency * SAMPLE_DURATION;
 		    osc[i].phase_stride = phase_stride;
 		    accumulateSignal(signal, &osc[i], 1.0f / NUM_OSCILLATORS);
 		  }
