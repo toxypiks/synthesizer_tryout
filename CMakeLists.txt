@@ -6,25 +6,46 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include_directories(include)
 
-set(SYNTHESIZER_TRYOUT
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/synth.c
+set(ADDITIVE_SYNTHESIS
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/additive_synthesis.c
+  )
+
+set(ADDITIVE_SYNTHESIS_LFO
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/additive_synthesis_lfo.c
   )
 
 find_package(raylib)
 
-add_executable(synthesizer_tryout)
-target_sources(synthesizer_tryout
+add_executable(additive_synthesis)
+target_sources(additive_synthesis
  PRIVATE
-  ${SYNTHESIZER_TRYOUT}
+  ${ADDITIVE_SYNTHESIS}
   )
 
-target_include_directories(synthesizer_tryout
+add_executable(additive_synthesis_lfo)
+target_sources(additive_synthesis_lfo
+ PRIVATE
+  ${ADDITIVE_SYNTHESIS_LFO}
+  )
+
+target_include_directories(additive_synthesis
  PRIVATE
   ${raylib_INCLUDE_DIRS}
   )
 
-target_link_libraries(synthesizer_tryout
+target_include_directories(additive_synthesis_lfo
+ PRIVATE
+  ${raylib_INCLUDE_DIRS}
+  )
+
+target_link_libraries(additive_synthesis
   ${raylib_LIBRARIES}
   )
 
-target_link_libraries(synthesizer_tryout m)
+target_link_libraries(additive_synthesis_lfo
+  ${raylib_LIBRARIES}
+  )
+
+target_link_libraries(additive_synthesis m)
+
+target_link_libraries(additive_synthesis_lfo m)
