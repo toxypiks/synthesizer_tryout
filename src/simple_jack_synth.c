@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <raylib.h>
 #include <math.h>
+#include <unistd.h>
+#include <jack/jack.h>
+
+jack_port_t* outputPort = 0;
 
 #define NUM_OSCILLATORS 8
 
@@ -55,16 +59,35 @@ void signal_generator(size_t t1, size_t t2, float* buffer){
 }
 
 
+size_t t = 0;
+
+int process(jack_nframes_t nframes, void* ){
+  // outputBuffer[nframes]
+  float* outputBuffer = (float*)jack_port_get_buffer ( outputPort, nframes);
+  signal_generator(t, t + nframes, outputBuffer);
+  t += nframes;
+  return 0;
+}
 
 int main(void)
 {
-  float buffer[1024];
-  signal_generator(0, 1024, buffer);
-  // buffer hat jetzt werte
+  // client erstellen
+  jack_client_t* client = jack_client_open ("SimpleJackSynth",
+                                            JackNullOption,
+                                            0,
+                                            0 );
+  // process function registrieren
+  jack_set_process_callback  (client, process , 0);
+  outputPort = jack_port_register ( client,
+                                    "output",
+                                    JACK_DEFAULT_AUDIO_TYPE,
+                                    JackPortIsOutput,
+                                    0 );
+  jack_activate(client);
+  sleep(30);
 
-  for (size_t i = 0; i < 1024; ++i) {
-    printf("%f\n", buffer[i]);
-  }
+  jack_deactivate(client);
+  jack_client_close(client);
   return 0;
 }
 
