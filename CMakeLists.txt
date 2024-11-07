@@ -32,6 +32,10 @@ set(SIMPLE_JACK_SYNTH
   ${CMAKE_CURRENT_SOURCE_DIR}/src/simple_jack_synth.c
   )
 
+set(ADDITIVE_SYNTH_WITH_JACK
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/additive_synth_with_jack.c
+  )
+
 find_package(raylib)
 
 find_package(Jack REQUIRED)
@@ -72,6 +76,12 @@ target_sources(simple_jack_synth
   ${SIMPLE_JACK_SYNTH}
   )
 
+add_executable(additive_synth_with_jack)
+target_sources(additive_synth_with_jack
+ PRIVATE
+  ${ADDITIVE_SYNTH_WITH_JACK}
+  )
+
 target_include_directories(additive_synthesis
  PRIVATE
   ${raylib_INCLUDE_DIRS}
@@ -95,6 +105,10 @@ target_include_directories(simple_jack_synth
   PUBLIC ${JACK_INCLUDE_DIRS}
 )
 
+target_include_directories(additive_synth_with_jack
+  PUBLIC ${JACK_INCLUDE_DIRS}
+)
+
 target_link_libraries(additive_synthesis
   ${raylib_LIBRARIES}
   )
@@ -115,6 +129,10 @@ target_link_libraries(simple_jack_synth
   ${JACK_LIBRARIES}
 )
 
+target_link_libraries(additive_synth_with_jack
+  ${JACK_LIBRARIES}
+)
+
 target_link_libraries(additive_synthesis m)
 
 target_link_libraries(additive_synthesis_lfo m)
@@ -122,3 +140,5 @@ target_link_libraries(additive_synthesis_lfo m)
 target_link_libraries(sine_wave_generator m)
 
 target_link_libraries(simple_jack_synth m)
+
+target_link_libraries(additive_synth_with_jack m)
