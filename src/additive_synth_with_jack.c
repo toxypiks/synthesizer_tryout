@@ -12,7 +12,8 @@ typedef struct Osc {
 
 typedef struct JackStuff {
   jack_port_t* output_port;
-  jack_ringbuffer_t* ringbuffer;
+  jack_ringbuffer_t* ringbuffer_audio;
+  jack_ringbuffer_t* ringbuffer_video;
 } JackStuff;
 
 
@@ -28,11 +29,11 @@ int process(jack_nframes_t nframes, void* jack_stuff_raw)
   JackStuff* jack_stuff = (JackStuff*)jack_stuff_raw;
   float* output_buffer= (float*)jack_port_get_buffer (jack_stuff->output_port, nframes);
 
-  if(jack_stuff->ringbuffer){ // is buffer even there?
+  if(jack_stuff->ringbuffer_audio){ // is buffer even there?
     // see if theres enough data in buffer to read nframes out of it (num_bytes >nframes)
-	size_t num_bytes = jack_ringbuffer_read_space (jack_stuff->ringbuffer);
+	size_t num_bytes = jack_ringbuffer_read_space (jack_stuff->ringbuffer_audio);
 	if(num_bytes >= (nframes* sizeof(float))) {
-	  jack_ringbuffer_read(jack_stuff->ringbuffer, (char*)output_buffer, nframes * sizeof(float));
+	  jack_ringbuffer_read(jack_stuff->ringbuffer_audio, (char*)output_buffer, nframes * sizeof(float));
 	} else {
 	  for ( int i = 0; i < (int) nframes; i++)
 	  {
@@ -43,10 +44,9 @@ int process(jack_nframes_t nframes, void* jack_stuff_raw)
   return 0;
 }
 
-
 int main(void) {
 
-  JackStuff jack_stuff = {.output_port = 0, .ringbuffer = NULL};
+  JackStuff jack_stuff = {.output_port = 0, .ringbuffer_audio = NULL, .ringbuffer_video = NULL};
 
   jack_client_t* client = jack_client_open ("JackClientAdditiveSynth",
                                             JackNullOption,
@@ -60,35 +60,44 @@ int main(void) {
                                     0 );
 
   size_t my_size = 192000 * sizeof(float);
-  jack_stuff.ringbuffer = jack_ringbuffer_create (my_size);
+  jack_stuff.ringbuffer_audio = jack_ringbuffer_create(my_size);
+  jack_stuff.ringbuffer_video = jack_ringbuffer_create(my_size);
 
   jack_set_process_callback(client, process ,(void*)&jack_stuff);
   jack_activate(client);
 
   float my_data_buf[1024];
-
   Osc my_osci = {.freq = 440, .time_step = 0};
 
   // create signal
   // has to run in own thread TODO
   // play 10 sec
-  size_t counter = 0;
-  while(counter < 48000 * 10 ){
-	// put data chunkwise in buffer
-	// after each chunk ask how much data is in buffer
-	// more then 2 sec of data in buffer -> sleep(1)
-	size_t num_bytes = jack_ringbuffer_read_space (jack_stuff.ringbuffer);
-	if (num_bytes < 96000 * sizeof(float)) {
+
+  const int screen_width = 1024;
+  const int screen_height = 768;
+  InitWindow(screen_width, screen_height, "synthesizer_tryout");
+  SetTargetFPS(60);
+
+  float raylib_data_buf[1024];
+
+  size_t num_bytes = jack_ringbuffer_read_space (jack_stuff.ringbuffer_audio);
+
+  while(!WindowShouldClose() && num_bytes < 96000 * sizeof(float)) {
+
 	  gen_signal_in_buf(my_data_buf, 1024, &my_osci);
-	  jack_ringbuffer_write (jack_stuff.ringbuffer, (void *) my_data_buf, 1024*sizeof(float));
-	  counter += 1024;
-	} else {
-	  sleep(1);
-	}
+	  jack_ringbuffer_write(jack_stuff.ringbuffer_audio, (void *) my_data_buf, 1024*sizeof(float));
+	  jack_ringbuffer_write(jack_stuff.ringbuffer_video, (void *) my_data_buf, 1024*sizeof(float));
+      //from ringbuffer to raylib_data_buf TODO
+
+	  BeginDrawing();
+	  ClearBackground(BLACK);
+	  EndDrawing();
   }
+  CloseWindow();
 
   jack_deactivate(client);
   jack_client_close(client);
-  jack_ringbuffer_free(jack_stuff.ringbuffer);
+  jack_ringbuffer_free(jack_stuff.ringbuffer_audio);
+
   return 0;
 }

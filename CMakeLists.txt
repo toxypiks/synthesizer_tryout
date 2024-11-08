@@ -97,6 +97,11 @@ target_include_directories(sine_wave_generator
   ${raylib_INCLUDE_DIRS}
   )
 
+target_include_directories(additive_synth_with_jack
+ PRIVATE
+  ${raylib_INCLUDE_DIRS}
+  )
+
 target_include_directories(jack_client
   PUBLIC ${JACK_INCLUDE_DIRS}
 )
@@ -114,6 +119,10 @@ target_link_libraries(additive_synthesis
   )
 
 target_link_libraries(additive_synthesis_lfo
+  ${raylib_LIBRARIES}
+  )
+
+target_link_libraries(additive_synth_with_jack
   ${raylib_LIBRARIES}
   )
 
