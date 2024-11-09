@@ -80,18 +80,22 @@ int main(void) {
 
   float raylib_data_buf[1024];
 
-  size_t num_bytes = jack_ringbuffer_read_space (jack_stuff.ringbuffer_audio);
+  while(!WindowShouldClose()) {
 
-  while(!WindowShouldClose() && num_bytes < 96000 * sizeof(float)) {
+	size_t num_bytes = jack_ringbuffer_read_space (jack_stuff.ringbuffer_audio);
 
+	if(num_bytes < 96000 * sizeof(float)) {
 	  gen_signal_in_buf(my_data_buf, 1024, &my_osci);
 	  jack_ringbuffer_write(jack_stuff.ringbuffer_audio, (void *) my_data_buf, 1024*sizeof(float));
 	  jack_ringbuffer_write(jack_stuff.ringbuffer_video, (void *) my_data_buf, 1024*sizeof(float));
       //from ringbuffer to raylib_data_buf TODO
+	} else {
+	  sleep(1);
+	}
 
-	  BeginDrawing();
-	  ClearBackground(BLACK);
-	  EndDrawing();
+	 BeginDrawing();
+	 ClearBackground(BLACK);
+	 EndDrawing();
   }
   CloseWindow();
 
