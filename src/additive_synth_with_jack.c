@@ -4,6 +4,8 @@
 #include <jack/ringbuffer.h>
 #include <unistd.h>
 #include <jack/jack.h>
+#include <stdlib.h>
+#include <string.h>
 
 // ----- Model teil ---------
 typedef struct Osc {
@@ -14,14 +16,50 @@ typedef struct Osc {
 void change_frequency(Osc* osc, float new_freq) {
   osc->freq = new_freq;
 }
-
+void change_time_step(Osc* osc, float add_time_step){
+   osc->time_step += add_time_step;
+}
 void gen_signal_in_buf(Osc* osc, float* buf, size_t buf_length) {
   for(size_t i = 0; i < buf_length; ++i) {
-	buf[i] = sinf(2*PI*osc->freq*(osc->time_step/48000.0));
-	osc->time_step += 1;
+	size_t t = osc->time_step + i;
+	buf[i] = sinf(2*PI*osc->freq*(t/48000.0));
   }
 }
 // --------------------
+
+//Raylib Ausgabe buffer
+typedef struct RayOutBuffer {
+  size_t max_length;
+  size_t global_frames_count;
+  float* global_frames;
+} RayOutBuffer;
+
+RayOutBuffer create_ray_out_buffer(size_t size){
+  RayOutBuffer ray_out_buffer = {
+	.max_length = size,
+	.global_frames_count = 0,
+	.global_frames = (float*)malloc(size * sizeof(float))
+  };
+  return ray_out_buffer;
+}
+void clear_ray_out_buffer(RayOutBuffer buf){
+  free(buf.global_frames);
+}
+
+void copy_to_ray_out_buffer(RayOutBuffer *buf, void *bufferData, unsigned int frames)
+{
+  size_t capacity = buf->max_length;
+  if(frames <= capacity - buf->global_frames_count) {
+	memcpy(buf->global_frames + buf->global_frames_count, bufferData, sizeof(float)*frames);
+	buf->global_frames_count += frames;
+  } else if (frames <= capacity) {
+	memmove(buf->global_frames, buf->global_frames + frames, sizeof(float)*(capacity - frames));
+	memcpy(buf->global_frames + (capacity - frames), bufferData, sizeof(float)*frames);
+  } else {
+	memcpy(buf->global_frames, bufferData, sizeof(float)* capacity);
+	buf->global_frames_count = capacity;
+  }
+}
 
 
 typedef struct JackStuff {
@@ -73,6 +111,7 @@ int main(void) {
   jack_stuff.ringbuffer_video = jack_ringbuffer_create(my_size);
 
   jack_set_process_callback(client, process ,(void*)&jack_stuff);
+  //client.set_sample_rate(48000);
   jack_activate(client);
 
   float my_data_buf[1024];
@@ -89,6 +128,11 @@ int main(void) {
 
   float raylib_data_buf[1024];
 
+  size_t old_buffer_level = 0;
+  size_t old_num_jack_data = 0;
+
+  RayOutBuffer ray_out_buffer = create_ray_out_buffer(10000);
+  int h = GetRenderHeight();
   while(!WindowShouldClose()) {
 
 	Vector2 mouse_pos = GetMousePosition();
@@ -96,24 +140,51 @@ int main(void) {
 	float new_freq = 50.0f + (normalized_mouse_x * 1000.0f);
 
     // hier beginnt Model
-	{ // Audio erzeugung
+	{
+	  change_frequency(&my_osci, new_freq);
+       // Audio erzeugung
 	  // später eigentich in eigenen thread ->tonerzeugugsthread
 	  size_t num_bytes = jack_ringbuffer_read_space (jack_stuff.ringbuffer_audio);
 
 	  if(num_bytes < 96000 * sizeof(float)) {
-		change_frequency(&my_osci, new_freq);
-		gen_signal_in_buf(&my_osci,my_data_buf, 1024 );
+		gen_signal_in_buf(&my_osci, my_data_buf, 1024);
+		change_time_step(&my_osci,1024);
+		jack_ringbuffer_write(jack_stuff.ringbuffer_video, (void *) my_data_buf, 1024*sizeof(float));
 		jack_ringbuffer_write(jack_stuff.ringbuffer_audio, (void *) my_data_buf, 1024*sizeof(float));
-		// jack_ringbuffer_write(jack_stuff.ringbuffer_video, (void *) my_data_buf, 1024*sizeof(float));
-		//from ringbuffer to raylib_data_buf TODO
 	  }
 	}
+
+	// checken sind daten im ringbuffer_video?
+	if(jack_stuff.ringbuffer_video){
+	  float output_buffer[1024];
+	  size_t num_bytes = jack_ringbuffer_read_space (jack_stuff.ringbuffer_video);
+	  if(num_bytes >= (1024* sizeof(float))) {
+		jack_ringbuffer_read(jack_stuff.ringbuffer_video, (char*)output_buffer, 1024 * sizeof(float));
+	  } else {
+		for ( int i = 0; i < 1024; i++)
+		{
+		  output_buffer[i] = 0.0;
+		}
+	  }
+	  copy_to_ray_out_buffer(&ray_out_buffer, output_buffer, 1024);
+	}
+	printf("daten in rayout buffer: %d\n",ray_out_buffer.global_frames_count);
 	// View teil 1
 	// daten aus Ringbuffer rausholen
 	// Daten zeichnen
-	 BeginDrawing();
-	 ClearBackground(BLACK);
-	 EndDrawing();
+	BeginDrawing();
+	ClearBackground(BLACK);
+	float cell_width = (float)GetRenderWidth()/ray_out_buffer.global_frames_count;
+	for (size_t i = 0; i < ray_out_buffer.global_frames_count; ++i) {
+	  float t = ray_out_buffer.global_frames[i];
+	  if (t > 0) {
+	    DrawRectangle(i * cell_width, h/2 - h/2*t, 1, h/2*t, RED);
+	  } else {
+		DrawRectangle(i * cell_width, h/2, 1, -h/2*t, BLUE);
+	  }
+	}
+
+	EndDrawing();
   }
   CloseWindow();
 
