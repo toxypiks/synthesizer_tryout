@@ -5,10 +5,24 @@
 #include <unistd.h>
 #include <jack/jack.h>
 
+// ----- Model teil ---------
 typedef struct Osc {
   float freq;
   float time_step;
 } Osc;
+
+void change_frequency(Osc* osc, float new_freq) {
+  osc->freq = new_freq;
+}
+
+void gen_signal_in_buf(Osc* osc, float* buf, size_t buf_length) {
+  for(size_t i = 0; i < buf_length; ++i) {
+	buf[i] = sinf(2*PI*osc->freq*(osc->time_step/48000.0));
+	osc->time_step += 1;
+  }
+}
+// --------------------
+
 
 typedef struct JackStuff {
   jack_port_t* output_port;
@@ -16,14 +30,8 @@ typedef struct JackStuff {
   jack_ringbuffer_t* ringbuffer_video;
 } JackStuff;
 
-
-void gen_signal_in_buf(float* buf, size_t buf_length, Osc* osc) {
-  for(size_t i = 0; i < buf_length; ++i) {
-	buf[i] = sinf(2*PI*osc->freq*(osc->time_step/48000.0));
-	osc->time_step += 1;
-  }
-}
-
+// View Teil 2
+// Sound ausgabe
 int process(jack_nframes_t nframes, void* jack_stuff_raw)
 {
   JackStuff* jack_stuff = (JackStuff*)jack_stuff_raw;
@@ -43,6 +51,7 @@ int process(jack_nframes_t nframes, void* jack_stuff_raw)
   }
   return 0;
 }
+
 
 int main(void) {
 
@@ -82,17 +91,26 @@ int main(void) {
 
   while(!WindowShouldClose()) {
 
-	size_t num_bytes = jack_ringbuffer_read_space (jack_stuff.ringbuffer_audio);
+	Vector2 mouse_pos = GetMousePosition();
+    float normalized_mouse_x = (mouse_pos.x /(float)screen_width);
+	float new_freq = 50.0f + (normalized_mouse_x * 1000.0f);
 
-	if(num_bytes < 96000 * sizeof(float)) {
-	  gen_signal_in_buf(my_data_buf, 1024, &my_osci);
-	  jack_ringbuffer_write(jack_stuff.ringbuffer_audio, (void *) my_data_buf, 1024*sizeof(float));
-	  jack_ringbuffer_write(jack_stuff.ringbuffer_video, (void *) my_data_buf, 1024*sizeof(float));
-      //from ringbuffer to raylib_data_buf TODO
-	} else {
-	  sleep(1);
+    // hier beginnt Model
+	{ // Audio erzeugung
+	  // später eigentich in eigenen thread ->tonerzeugugsthread
+	  size_t num_bytes = jack_ringbuffer_read_space (jack_stuff.ringbuffer_audio);
+
+	  if(num_bytes < 96000 * sizeof(float)) {
+		change_frequency(&my_osci, new_freq);
+		gen_signal_in_buf(&my_osci,my_data_buf, 1024 );
+		jack_ringbuffer_write(jack_stuff.ringbuffer_audio, (void *) my_data_buf, 1024*sizeof(float));
+		// jack_ringbuffer_write(jack_stuff.ringbuffer_video, (void *) my_data_buf, 1024*sizeof(float));
+		//from ringbuffer to raylib_data_buf TODO
+	  }
 	}
-
+	// View teil 1
+	// daten aus Ringbuffer rausholen
+	// Daten zeichnen
 	 BeginDrawing();
 	 ClearBackground(BLACK);
 	 EndDrawing();
