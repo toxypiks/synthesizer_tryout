@@ -46,6 +46,11 @@ set(RAY_OUT_BUFFER_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/include/ray_out_buffer.h
   )
 
+set(JACK_STUFF_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/jack_stuff.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/jack_stuff.h
+  )
+
 find_package(raylib)
 
 find_package(Jack REQUIRED)
@@ -147,6 +152,20 @@ target_include_directories(ray_out_buffer
  ${INCLUDE}
  )
 
+add_library(jack_stuff)
+target_sources(jack_stuff
+ PRIVATE
+  ${JACK_STUFF_SOURCES}
+  )
+target_include_directories(jack_stuff
+ PRIVATE
+ ${INCLUDE}
+ )
+
+target_link_libraries(jack_stuff
+  ${JACK_LIBRARIES}
+  )
+
 add_executable(additive_synth_with_jack)
 target_sources(additive_synth_with_jack
  PRIVATE
@@ -163,4 +182,5 @@ target_link_libraries(additive_synth_with_jack
   m
   oscillator
   ray_out_buffer
+  jack_stuff
   )
