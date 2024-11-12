@@ -41,6 +41,10 @@ set(OSCILLATOR_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/include/oscillator.h
   )
 
+set(RAY_OUT_BUFFER_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/ray_out_buffer.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/ray_out_buffer.h
+  )
 
 find_package(raylib)
 
@@ -133,6 +137,16 @@ target_link_libraries(oscillator
   m
   )
 
+add_library(ray_out_buffer)
+target_sources(ray_out_buffer
+ PRIVATE
+  ${RAY_OUT_BUFFER_SOURCES}
+  )
+target_include_directories(ray_out_buffer
+ PRIVATE
+ ${INCLUDE}
+ )
+
 add_executable(additive_synth_with_jack)
 target_sources(additive_synth_with_jack
  PRIVATE
@@ -148,4 +162,5 @@ target_link_libraries(additive_synth_with_jack
   ${JACK_LIBRARIES}
   m
   oscillator
-)
+  ray_out_buffer
+  )
