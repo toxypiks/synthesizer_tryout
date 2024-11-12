@@ -36,6 +36,12 @@ set(ADDITIVE_SYNTH_WITH_JACK
   ${CMAKE_CURRENT_SOURCE_DIR}/src/additive_synth_with_jack.c
   )
 
+set(OSCILLATOR_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/oscillator.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/oscillator.h
+  )
+
+
 find_package(raylib)
 
 find_package(Jack REQUIRED)
@@ -45,17 +51,41 @@ target_sources(additive_synthesis
  PRIVATE
   ${ADDITIVE_SYNTHESIS}
   )
+target_include_directories(additive_synthesis
+ PRIVATE
+  ${raylib_INCLUDE_DIRS}
+  )
+target_link_libraries(additive_synthesis
+  ${raylib_LIBRARIES}
+  m
+  )
 
 add_executable(additive_synthesis_lfo)
 target_sources(additive_synthesis_lfo
  PRIVATE
   ${ADDITIVE_SYNTHESIS_LFO}
   )
+target_include_directories(additive_synthesis_lfo
+ PRIVATE
+  ${raylib_INCLUDE_DIRS}
+  )
+target_link_libraries(additive_synthesis_lfo
+  ${raylib_LIBRARIES}
+  m
+  )
 
 add_executable(sine_wave_generator)
 target_sources(sine_wave_generator
  PRIVATE
   ${SINE_WAVE_GENERATOR}
+  )
+target_include_directories(sine_wave_generator
+ PRIVATE
+  ${raylib_INCLUDE_DIRS}
+  )
+target_link_libraries(sine_wave_generator
+  ${raylib_LIBRARIES}
+  m
   )
 
 add_executable(play_wave)
@@ -69,11 +99,38 @@ target_sources(jack_client
  PRIVATE
   ${JACK_CLIENT}
   )
+target_include_directories(jack_client
+  PUBLIC ${JACK_INCLUDE_DIRS}
+)
+target_link_libraries(jack_client
+  ${JACK_LIBRARIES}
+)
 
 add_executable(simple_jack_synth)
 target_sources(simple_jack_synth
  PRIVATE
   ${SIMPLE_JACK_SYNTH}
+  )
+target_include_directories(simple_jack_synth
+  PUBLIC ${JACK_INCLUDE_DIRS}
+)
+target_link_libraries(simple_jack_synth
+  ${JACK_LIBRARIES}
+  m
+)
+
+add_library(oscillator)
+target_sources(oscillator
+ PRIVATE
+  ${OSCILLATOR_SOURCES}
+  )
+target_include_directories(oscillator
+ PRIVATE
+  ${raylib_INCLUDE_DIRS}
+  )
+target_link_libraries(oscillator
+  ${raylib_LIBRARIES}
+  m
   )
 
 add_executable(additive_synth_with_jack)
@@ -81,73 +138,14 @@ target_sources(additive_synth_with_jack
  PRIVATE
   ${ADDITIVE_SYNTH_WITH_JACK}
   )
-
-target_include_directories(additive_synthesis
- PRIVATE
-  ${raylib_INCLUDE_DIRS}
-  )
-
-target_include_directories(additive_synthesis_lfo
- PRIVATE
-  ${raylib_INCLUDE_DIRS}
-  )
-
-target_include_directories(sine_wave_generator
- PRIVATE
-  ${raylib_INCLUDE_DIRS}
-  )
-
 target_include_directories(additive_synth_with_jack
  PRIVATE
-  ${raylib_INCLUDE_DIRS}
-  )
-
-target_include_directories(jack_client
-  PUBLIC ${JACK_INCLUDE_DIRS}
-)
-
-target_include_directories(simple_jack_synth
-  PUBLIC ${JACK_INCLUDE_DIRS}
-)
-
-target_include_directories(additive_synth_with_jack
-  PUBLIC ${JACK_INCLUDE_DIRS}
-)
-
-target_link_libraries(additive_synthesis
-  ${raylib_LIBRARIES}
-  )
-
-target_link_libraries(additive_synthesis_lfo
-  ${raylib_LIBRARIES}
-  )
-
+ ${raylib_INCLUDE_DIRS}
+ ${JACK_INCLUDE_DIRS}
+ )
 target_link_libraries(additive_synth_with_jack
   ${raylib_LIBRARIES}
-  )
-
-target_link_libraries(sine_wave_generator
-  ${raylib_LIBRARIES}
-  )
-
-target_link_libraries(jack_client
   ${JACK_LIBRARIES}
+  m
+  oscillator
 )
-
-target_link_libraries(simple_jack_synth
-  ${JACK_LIBRARIES}
-)
-
-target_link_libraries(additive_synth_with_jack
-  ${JACK_LIBRARIES}
-)
-
-target_link_libraries(additive_synthesis m)
-
-target_link_libraries(additive_synthesis_lfo m)
-
-target_link_libraries(sine_wave_generator m)
-
-target_link_libraries(simple_jack_synth m)
-
-target_link_libraries(additive_synth_with_jack m)

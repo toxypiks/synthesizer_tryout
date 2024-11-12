@@ -6,26 +6,7 @@
 #include <jack/jack.h>
 #include <stdlib.h>
 #include <string.h>
-
-// ----- Model teil ---------
-typedef struct Osc {
-  float freq;
-  float time_step;
-} Osc;
-
-void change_frequency(Osc* osc, float new_freq) {
-  osc->freq = new_freq;
-}
-void change_time_step(Osc* osc, float add_time_step){
-   osc->time_step += add_time_step;
-}
-void gen_signal_in_buf(Osc* osc, float* buf, size_t buf_length) {
-  for(size_t i = 0; i < buf_length; ++i) {
-	size_t t = osc->time_step + i;
-	buf[i] = sinf(2*PI*osc->freq*(t/48000.0));
-  }
-}
-// --------------------
+#include "oscillator.h"
 
 //Raylib Ausgabe buffer
 typedef struct RayOutBuffer {
@@ -115,7 +96,7 @@ int main(void) {
   jack_activate(client);
 
   float my_data_buf[1024];
-  Osc my_osci = {.freq = 440, .time_step = 0};
+  Oscillator my_osci = {.freq = 440, .time_step = 0};
 
   // create signal
   // has to run in own thread TODO
