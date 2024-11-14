@@ -14,6 +14,7 @@ int main(void) {
   float my_data_buf[1024];
   Oscillator my_osci = {.freq = 440, .time_step = 0};
 
+  Oscillator osc[8] = {0};
   // create signal
   // has to run in own thread TODO
   // play 10 sec
@@ -44,10 +45,16 @@ int main(void) {
 	  size_t num_bytes = jack_ringbuffer_read_space (jack_stuff->ringbuffer_audio);
 
 	  if(num_bytes < 96000 * sizeof(float)) {
-		gen_signal_in_buf(&my_osci, my_data_buf, 1024);
-		change_time_step(&my_osci,1024);
-		jack_ringbuffer_write(jack_stuff->ringbuffer_video, (void *) my_data_buf, 1024*sizeof(float));
-		jack_ringbuffer_write(jack_stuff->ringbuffer_audio, (void *) my_data_buf, 1024*sizeof(float));
+
+		for(size_t i = 1; i <= 8; ++i) {
+		  if(i % 2 == 0) {
+			change_frequency(&osc[i], (new_freq *i));
+		    gen_signal_in_buf(&osc[i], my_data_buf, 1024);
+		    change_time_step(&osc[i],1024);
+		    jack_ringbuffer_write(jack_stuff->ringbuffer_video, (void *) my_data_buf, 1024*sizeof(float));
+		    jack_ringbuffer_write(jack_stuff->ringbuffer_audio, (void *) my_data_buf, 1024*sizeof(float));
+		  }
+		}
 	  }
 	}
 
